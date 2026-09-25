@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKERHUB_USERNAME = 'deepu09567'
         IMAGE_NAME = 'deepu09567/deepu'
-        
+
         DOCKER = 'C:\\Users\\Ankit\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
     }
 
@@ -24,7 +24,7 @@ pipeline {
                 echo 'Building Docker image...'
 
                 bat '''
-                    docker build -t %IMAGE_NAME%:latest .
+                    "%DOCKER%" build -t %IMAGE_NAME%:latest .
                 '''
             }
         }
@@ -35,13 +35,13 @@ pipeline {
 
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'dockerhub-credentials',
+                        credentialsId: 'dockerhub-credentialsnew',
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
                 ]) {
                     bat '''
-                        echo %DOCKER_PASSWORD% | docker login -u "%DOCKER_USER%" --password-stdin
+                        echo %DOCKER_PASSWORD% | "%DOCKER%" login -u "%DOCKER_USER%" --password-stdin
                     '''
                 }
             }
@@ -52,7 +52,7 @@ pipeline {
                 echo 'Pushing image to Docker Hub...'
 
                 bat '''
-                    docker push %IMAGE_NAME%:latest
+                    "%DOCKER%" push %IMAGE_NAME%:latest
                 '''
             }
         }
@@ -62,14 +62,14 @@ pipeline {
                 echo 'Deploying container on Windows machine...'
 
                 bat '''
-                    docker stop deepu 2>NUL || exit 0
-                    docker rm deepu 2>NUL || exit 0
+                    "%DOCKER%" stop deepu 2>NUL || exit 0
+                    "%DOCKER%" rm deepu 2>NUL || exit 0
 
-                    docker pull %IMAGE_NAME%:latest
+                    "%DOCKER%" pull %IMAGE_NAME%:latest
 
-                    docker run -d ^
+                    "%DOCKER%" run -d ^
                         --name deepu ^
-                        -p 8090:80 ^
+                        -p 8070:80 ^
                         %IMAGE_NAME%:latest
                 '''
             }
@@ -79,7 +79,7 @@ pipeline {
     post {
         success {
             echo 'CI/CD Pipeline completed successfully!'
-            echo 'Website: http://localhost:8090'
+            echo 'Website: http://localhost:8070'
         }
 
         failure {
