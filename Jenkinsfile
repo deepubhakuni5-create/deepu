@@ -4,8 +4,6 @@ pipeline {
     environment {
         DOCKERHUB_USERNAME = 'deepu09567'
         IMAGE_NAME = 'deepu09567/staticwebsite_pipleline'
-
-        DOCKER = 'C:\\Users\\Ankit\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
     }
 
     stages {
@@ -13,19 +11,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Checking out source code...'
-
                 git branch: 'main',
-                    url: 'https://github.com/deepubhakuni5-create/deepu.git'
-            }
-        }
-
-        stage('Check Docker') {
-            steps {
-                echo 'Checking Docker installation...'
-
-                bat '''
-                    "%DOCKER%" --version
-                '''
+                    url: 'https://gitlab.com/shobhitsingh41590/staticwebsite_pipleline.git'
             }
         }
 
@@ -34,7 +21,7 @@ pipeline {
                 echo 'Building Docker image...'
 
                 bat '''
-                    "%DOCKER%" build -t %IMAGE_NAME%:latest .
+                    docker build -t %IMAGE_NAME%:latest .
                 '''
             }
         }
@@ -51,7 +38,7 @@ pipeline {
                     )
                 ]) {
                     bat '''
-                        echo %DOCKER_PASSWORD% | "%DOCKER%" login --username "%DOCKER_USER%" --password-stdin
+                        docker login -u "%DOCKER_USER%" -p "%DOCKER_PASSWORD%"
                     '''
                 }
             }
@@ -62,7 +49,7 @@ pipeline {
                 echo 'Pushing image to Docker Hub...'
 
                 bat '''
-                    "%DOCKER%" push %IMAGE_NAME%:latest
+                    docker push %IMAGE_NAME%:latest
                 '''
             }
         }
@@ -72,15 +59,14 @@ pipeline {
                 echo 'Deploying container on Windows machine...'
 
                 bat '''
-                    "%DOCKER%" stop staticwebsite 2>NUL || exit /B 0
+                    docker stop staticwebsite 2>NUL || exit 0
+                    docker rm staticwebsite 2>NUL || exit 0
 
-                    "%DOCKER%" rm staticwebsite 2>NUL || exit /B 0
+                    docker pull %IMAGE_NAME%:latest
 
-                    "%DOCKER%" pull %IMAGE_NAME%:latest
-
-                    "%DOCKER%" run -d ^
+                    docker run -d ^
                         --name staticwebsite ^
-                        -p 8061:80 ^
+                        -p 1748:80 ^
                         %IMAGE_NAME%:latest
                 '''
             }
@@ -88,23 +74,13 @@ pipeline {
     }
 
     post {
-
         success {
-            echo '=========================================='
             echo 'CI/CD Pipeline completed successfully!'
-            echo '=========================================='
-            echo 'Docker Image: deepu09567/staticwebsite_pipleline:latest'
-            echo 'Container: staticwebsite'
-            echo 'Website: http://localhost:8061'
-            echo '=========================================='
+            echo 'Website: http://localhost:1748'
         }
 
         failure {
-            echo '=========================================='
             echo 'CI/CD Pipeline failed.'
-            echo 'Please check the Console Output.'
-            echo '=========================================='
         }
     }
 }
-
