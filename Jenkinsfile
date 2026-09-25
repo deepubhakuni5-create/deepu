@@ -4,6 +4,7 @@ pipeline {
     environment {
         DOCKERHUB_USERNAME = 'deepu09567'
         IMAGE_NAME = 'deepu09567/deepu'
+        
         DOCKER = 'C:\\Users\\Ankit\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
     }
 
