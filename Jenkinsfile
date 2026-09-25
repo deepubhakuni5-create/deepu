@@ -2,26 +2,20 @@ pipeline {
     agent any
 
     stages {
-
-        stage('Test WinCred') {
+        stage('Docker Login Test') {
             steps {
-                bat '''
-                    echo ================================
-                    echo WINCRED TEST
-                    echo ================================
-
-                    whoami
-                    echo.
-
-                    echo Docker Credential Helper:
-                    docker-credential-wincred.exe version
-                    echo.
-
-                    echo Stored Docker Credentials:
-                    echo {"ServerURL":"https://index.docker.io/v1/"} | docker-credential-wincred.exe get
-                '''
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    bat '''
+                        echo %DOCKER_PASSWORD% | docker login -u "%DOCKER_USER%" --password-stdin
+                    '''
+                }
             }
         }
     }
 }
-
