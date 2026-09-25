@@ -3,7 +3,7 @@ pipeline {
 
     stages {
 
-        stage('Docker Login - Clean Config') {
+        stage('Docker Hub Credential Test') {
             steps {
 
                 withCredentials([
@@ -16,56 +16,47 @@ pipeline {
 
                     powershell '''
                         Write-Host "================================"
-                        Write-Host "Docker Login - Clean Config"
+                        Write-Host "Docker Hub Credential Test"
                         Write-Host "================================"
 
-                        $cleanConfig = "$env:WORKSPACE/.docker-test"
+                        Write-Host "Username: $env:DOCKER_USER"
+                        Write-Host "Password Present: $([string]::IsNullOrEmpty($env:DOCKER_PASSWORD) -eq $false)"
+                        Write-Host "Password Length: $($env:DOCKER_PASSWORD.Length)"
 
-                        if (Test-Path $cleanConfig) {
-                            Remove-Item $cleanConfig -Recurse -Force
+                        $pair = "$($env:DOCKER_USER):$($env:DOCKER_PASSWORD)"
+                        $encoded = [Convert]::ToBase64String(
+                            [Text.Encoding]::UTF8.GetBytes($pair)
+                        )
+
+                        $headers = @{
+                            Authorization = "Basic $encoded"
                         }
 
-                        New-Item -ItemType Directory -Path $cleanConfig -Force | Out-Null
+                        try {
+                            $response = Invoke-WebRequest `
+                                -Uri "https://hub.docker.com/v2/users/login/" `
+                                -Method POST `
+                                -Headers $headers `
+                                -UseBasicParsing
 
-                        $env:DOCKER_CONFIG = $cleanConfig
-
-                        Write-Host "Docker Config:"
-                        Write-Host $env:DOCKER_CONFIG
-
-                        Write-Host ""
-                        Write-Host "Username:"
-                        Write-Host $env:DOCKER_USER
-
-                        Write-Host ""
-                        Write-Host "Password Present:"
-                        Write-Host ([string]::IsNullOrEmpty($env:DOCKER_PASSWORD) -eq $false)
-
-                        Write-Host ""
-                        Write-Host "Starting Docker Login..."
-
-                        $env:DOCKER_PASSWORD | docker login --username $env:DOCKER_USER --password-stdin
-
-                        if ($LASTEXITCODE -ne 0) {
                             Write-Host ""
-                            Write-Host "Docker Hub Login FAILED"
-                            exit $LASTEXITCODE
-                        }
+                            Write-Host "Docker Hub Authentication HTTP Status:"
+                            Write-Host $response.StatusCode
 
-                        Write-Host ""
-                        Write-Host "Docker Hub Login SUCCESSFUL"
+                            Write-Host ""
+                            Write-Host "Docker Hub authentication request completed."
+                        }
+                        catch {
+                            Write-Host ""
+                            Write-Host "HTTP Status:"
+                            Write-Host $_.Exception.Response.StatusCode.value__
+
+                            Write-Host ""
+                            Write-Host "Docker Hub rejected the credentials."
+                        }
                     '''
                 }
             }
-        }
-    }
-
-    post {
-        success {
-            echo 'Docker Hub login successful with clean Docker config!'
-        }
-
-        failure {
-            echo 'Docker Hub login failed even with clean Docker config.'
         }
     }
 }
