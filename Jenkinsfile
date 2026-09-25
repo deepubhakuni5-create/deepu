@@ -19,13 +19,17 @@ pipeline {
             }
         }
 
-        stage('Docker Info') {
+        stage('Docker Environment Test') {
             steps {
-                echo 'Checking Docker...'
+                echo 'Checking Jenkins and Docker environment...'
 
                 bat '''
                     whoami
+                    echo USERPROFILE=%USERPROFILE%
+                    echo DOCKER_CONFIG=%DOCKER_CONFIG%
+
                     "%DOCKER%" version
+                    "%DOCKER%" context show
                     "%DOCKER%" info
                 '''
             }
@@ -41,13 +45,44 @@ pipeline {
             }
         }
 
+        stage('Docker Credential Test') {
+            steps {
+                echo 'Testing Jenkins Docker Hub credential...'
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-crede',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    bat '''
+                        if "%DOCKER_USER%"=="" (
+                            echo ERROR: Docker username is empty
+                            exit /b 1
+                        )
+
+                        if "%DOCKER_PASSWORD%"=="" (
+                            echo ERROR: Docker password is empty
+                            exit /b 1
+                        )
+
+                        echo Docker username received from Jenkins credential:
+                        echo %DOCKER_USER%
+
+                        echo Docker password is present.
+                    '''
+                }
+            }
+        }
+
         stage('Docker Login') {
             steps {
                 echo 'Logging into Docker Hub...'
 
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'dockerhub-creds',
+                        credentialsId: 'dockerhub-crede',
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
@@ -71,35 +106,74 @@ pipeline {
 
         stage('Deploy Container') {
             steps {
-                echo 'Deploying container on Windows machine...'
+                echo 'Deploying container...'
 
                 bat '''
-                    "%DOCKER%" stop deepu 2>NUL || exit 0
-                    "%DOCKER%" rm deepu 2>NUL || exit 0
+                    echo Stopping old container...
+
+                    "%DOCKER%" stop deepu 2>NUL || exit /b 0
+
+                    echo Removing old container...
+
+                    "%DOCKER%" rm deepu 2>NUL || exit /b 0
+
+                    echo Pulling latest image...
 
                     "%DOCKER%" pull %IMAGE_NAME%:latest
+
+                    echo Starting new container...
 
                     "%DOCKER%" run -d ^
                         --name deepu ^
                         -p 8070:80 ^
                         %IMAGE_NAME%:latest
+
+                    echo Container started successfully.
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                echo 'Checking running container...'
+
+                bat '''
+                    "%DOCKER%" ps
+
+                    echo.
+                    echo ======================================
+                    echo Website URL:
+                    echo http://localhost:8070
+                    echo ======================================
                 '''
             }
         }
     }
 
     post {
+
         success {
-            echo '======================================'
-            echo 'CI/CD Pipeline completed successfully!'
-            echo '======================================'
-            echo 'Website: http://localhost:8070'
+            echo '''
+========================================
+CI/CD PIPELINE SUCCESS
+========================================
+Docker Image:
+deepu09567/deepu:latest
+
+Website:
+http://localhost:8070
+========================================
+'''
         }
 
         failure {
-            echo '======================================'
-            echo 'CI/CD Pipeline failed.'
-            echo '======================================'
+            echo '''
+========================================
+CI/CD PIPELINE FAILED
+========================================
+Check the failed stage in Console Output.
+========================================
+'''
         }
     }
 }
