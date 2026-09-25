@@ -3,42 +3,37 @@ pipeline {
 
     stages {
 
-        stage('Docker Hub Login Test') {
+        stage('Docker Login') {
             steps {
 
-                echo 'Testing Docker Hub authentication...'
+                echo 'Testing Docker Hub login from Jenkins...'
 
-                bat '''
-                    echo ================================
-                    echo Docker Context
-                    echo ================================
-                    docker context show
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
 
-                    echo.
-                    echo ================================
-                    echo Docker Version
-                    echo ================================
-                    docker version
+                    bat '''
+                        echo Username: %DOCKER_USER%
+                        echo Password: dckr_pat_XGsQWtLlUurU9-B6J9kn-0q7vj8
 
-                    echo.
-                    echo ================================
-                    echo Docker Hub Login
-                    echo ================================
-                    echo.
-
-                    docker login -u deepu09567
-                '''
+                        echo %DOCKER_PASSWORD% | docker login --username "%DOCKER_USER%" --password-stdin
+                    '''
+                }
             }
         }
     }
 
     post {
         success {
-            echo 'Docker Hub login successful!'
+            echo 'Docker Hub Login SUCCESSFUL!'
         }
 
         failure {
-            echo 'Docker Hub login failed.'
+            echo 'Docker Hub Login FAILED!'
         }
     }
 }
