@@ -3,10 +3,8 @@ pipeline {
 
     stages {
 
-        stage('Docker Login') {
+        stage('Check Docker Credential') {
             steps {
-
-                echo 'Testing Docker Hub login from Jenkins...'
 
                 withCredentials([
                     usernamePassword(
@@ -18,35 +16,18 @@ pipeline {
 
                     powershell '''
                         Write-Host "================================"
-                        Write-Host "Docker Login"
+                        Write-Host "Jenkins Credential Test"
                         Write-Host "================================"
 
                         Write-Host "Username: $env:DOCKER_USER"
-                        Write-Host "Password: PRESENT"
+                        Write-Host "Password Present: $([string]::IsNullOrEmpty($env:DOCKER_PASSWORD) -eq $false)"
+                        Write-Host "Password Length: $($env:DOCKER_PASSWORD.Length)"
 
-                        $env:DOCKER_PASSWORD | docker login `
-                            --username $env:DOCKER_USER `
-                            --password-stdin
-
-                        if ($LASTEXITCODE -ne 0) {
-                            Write-Host "Docker login failed."
-                            exit $LASTEXITCODE
-                        }
-
-                        Write-Host "Docker login successful!"
+                        docker --version
+                        docker context show
                     '''
                 }
             }
-        }
-    }
-
-    post {
-        success {
-            echo 'Docker Hub Login SUCCESSFUL!'
-        }
-
-        failure {
-            echo 'Docker Hub Login FAILED!'
         }
     }
 }
