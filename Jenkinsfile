@@ -3,61 +3,70 @@ pipeline {
 
     stages {
 
-        stage('LocalSystem Docker Diagnostic') {
+        stage('Docker Login - Clean Config') {
             steps {
 
-                powershell '''
-                    Write-Host "================================"
-                    Write-Host "Jenkins Docker Diagnostic"
-                    Write-Host "================================"
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
 
-                    Write-Host ""
-                    Write-Host "Windows User:"
-                    whoami
+                    powershell '''
+                        Write-Host "================================"
+                        Write-Host "Docker Login - Clean Config"
+                        Write-Host "================================"
 
-                    Write-Host ""
-                    Write-Host "Docker Version:"
-                    docker version --format "{{.Client.Version}} / {{.Server.Version}}"
+                        $cleanConfig = "$env:WORKSPACE/.docker-test"
 
-                    Write-Host ""
-                    Write-Host "Docker Context:"
-                    docker context show
+                        if (Test-Path $cleanConfig) {
+                            Remove-Item $cleanConfig -Recurse -Force
+                        }
 
-                    Write-Host ""
-                    Write-Host "DOCKER_CONFIG:"
-                    if ($env:DOCKER_CONFIG) {
+                        New-Item -ItemType Directory -Path $cleanConfig -Force | Out-Null
+
+                        $env:DOCKER_CONFIG = $cleanConfig
+
+                        Write-Host "Docker Config:"
                         Write-Host $env:DOCKER_CONFIG
-                    }
-                    else {
-                        Write-Host "NOT SET"
-                    }
 
-                    Write-Host ""
-                    Write-Host "USERPROFILE:"
-                    Write-Host $env:USERPROFILE
+                        Write-Host ""
+                        Write-Host "Username:"
+                        Write-Host $env:DOCKER_USER
 
-                    Write-Host ""
-                    Write-Host "APPDATA:"
-                    Write-Host $env:APPDATA
+                        Write-Host ""
+                        Write-Host "Password Present:"
+                        Write-Host ([string]::IsNullOrEmpty($env:DOCKER_PASSWORD) -eq $false)
 
-                    Write-Host ""
-                    Write-Host "Docker configuration:"
-                    
-                    if (Test-Path "$env:USERPROFILE/.docker/config.json") {
-                        Write-Host "FOUND USERPROFILE Docker config"
-                    }
-                    else {
-                        Write-Host "USERPROFILE Docker config NOT FOUND"
-                    }
+                        Write-Host ""
+                        Write-Host "Starting Docker Login..."
 
-                    if (Test-Path "C:/Windows/System32/config/systemprofile/.docker/config.json") {
-                        Write-Host "FOUND LocalSystem Docker config"
-                    }
-                    else {
-                        Write-Host "LocalSystem Docker config NOT FOUND"
-                    }
-                '''
+                        $env:DOCKER_PASSWORD | docker login --username $env:DOCKER_USER --password-stdin
+
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Host ""
+                            Write-Host "Docker Hub Login FAILED"
+                            exit $LASTEXITCODE
+                        }
+
+                        Write-Host ""
+                        Write-Host "Docker Hub Login SUCCESSFUL"
+                    '''
+                }
             }
         }
     }
+
+    post {
+        success {
+            echo 'Docker Hub login successful with clean Docker config!'
+        }
+
+        failure {
+            echo 'Docker Hub login failed even with clean Docker config.'
+        }
+    }
 }
+
