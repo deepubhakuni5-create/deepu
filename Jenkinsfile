@@ -3,62 +3,43 @@ pipeline {
 
     stages {
 
-        stage('Docker Authentication Diagnostic') {
+        stage('Docker Hub Login Test') {
             steps {
 
-                echo 'Checking Docker and Jenkins credentials...'
+                echo 'Testing Docker Hub authentication...'
 
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASSWORD'
-                    )
-                ]) {
+                bat '''
+                    echo ================================
+                    echo Docker Context
+                    echo ================================
+                    docker context show
 
-                    bat '''
-                        echo ================================
-                        echo Docker Context
-                        echo ================================
-                        docker context show
+                    echo.
+                    echo ================================
+                    echo Docker Version
+                    echo ================================
+                    docker version
 
-                        echo.
-                        echo ================================
-                        echo Docker Version
-                        echo ================================
-                        docker version
+                    echo.
+                    echo ================================
+                    echo Docker Hub Login
+                    echo ================================
+                    echo.
 
-                        echo.
-                        echo ================================
-                        echo Jenkins Credential
-                        echo ================================
-                        echo Username: %DOCKER_USER%
-
-                        if "%DOCKER_PASSWORD%"=="" (
-                            echo PASSWORD IS EMPTY
-                        ) else (
-                            echo PASSWORD IS PRESENT
-                        )
-
-                        echo.
-                        echo ================================
-                        echo Docker Login
-                        echo ================================
-
-                        echo %DOCKER_PASSWORD% | docker login --username "%DOCKER_USER%" --password-stdin
-                    '''
-                }
+                    docker login -u deepu09567
+                '''
             }
         }
     }
 
     post {
         success {
-            echo 'Docker login successful!'
+            echo 'Docker Hub login successful!'
         }
 
         failure {
-            echo 'Docker login failed. Check the console output.'
+            echo 'Docker Hub login failed.'
         }
     }
 }
+
