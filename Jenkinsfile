@@ -3,7 +3,7 @@ pipeline {
 
     stages {
 
-        stage('Validate Docker Hub PAT') {
+        stage('Clean Docker Login Test') {
             steps {
 
                 withCredentials([
@@ -16,47 +16,43 @@ pipeline {
 
                     powershell '''
                         Write-Host "================================"
-                        Write-Host "Docker Hub PAT Validation"
+                        Write-Host "Clean Docker Login Test"
                         Write-Host "================================"
 
-                        Write-Host "Username: $env:DOCKER_USER"
-                        Write-Host "Password Present: $([string]::IsNullOrEmpty($env:DOCKER_PASSWORD) -eq $false)"
-                        Write-Host "Password Length: $($env:DOCKER_PASSWORD.Length)"
+                        $cleanConfig = "$env:WORKSPACE/docker-config-test"
 
-                        $pair = "$($env:DOCKER_USER):$($env:DOCKER_PASSWORD)"
-                        $bytes = [System.Text.Encoding]::UTF8.GetBytes($pair)
-                        $encoded = [Convert]::ToBase64String($bytes)
-
-                        $headers = @{
-                            Authorization = "Basic $encoded"
+                        if (Test-Path $cleanConfig) {
+                            Remove-Item $cleanConfig -Recurse -Force
                         }
 
-                        try {
+                        New-Item -ItemType Directory -Path $cleanConfig -Force | Out-Null
 
-                            $response = Invoke-WebRequest `
-                                -Uri "https://auth.docker.io/token?service=registry.docker.io&scope=repository:library/nginx:pull" `
-                                -Method GET `
-                                -Headers $headers `
-                                -UseBasicParsing
+                        $env:DOCKER_CONFIG = $cleanConfig
 
+                        Write-Host "Docker Config:"
+                        Write-Host $env:DOCKER_CONFIG
+
+                        Write-Host ""
+                        Write-Host "Docker Version:"
+                        docker version --format "{{.Client.Version}} / {{.Server.Version}}"
+
+                        Write-Host ""
+                        Write-Host "Starting Docker Login..."
+
+                        $env:DOCKER_PASSWORD | docker login docker.io --username $env:DOCKER_USER --password-stdin
+
+                        if ($LASTEXITCODE -ne 0) {
                             Write-Host ""
-                            Write-Host "HTTP Status:"
-                            Write-Host $response.StatusCode
-
-                            Write-Host ""
-                            Write-Host "Docker Hub PAT ACCEPTED"
-
-                        }
-                        catch {
-
-                            Write-Host ""
-                            Write-Host "HTTP Status:"
-                            Write-Host $_.Exception.Response.StatusCode.value__
-
-                            Write-Host ""
-                            Write-Host "Docker Hub PAT REJECTED"
+                            Write-Host "Docker LOGIN FAILED"
                             exit 1
                         }
+
+                        Write-Host ""
+                        Write-Host "Docker LOGIN SUCCESS"
+
+                        Write-Host ""
+                        Write-Host "Docker Config Created:"
+                        Get-ChildItem $cleanConfig
                     '''
                 }
             }
