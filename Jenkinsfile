@@ -3,33 +3,25 @@ pipeline {
 
     stages {
 
-        stage('Test Docker Credential Helper') {
+        stage('Test WinCred') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASSWORD'
-                    )
-                ]) {
-                    bat '''
-                        echo ================================
-                        echo Docker Credential Helper Test
-                        echo ================================
+                bat '''
+                    echo ================================
+                    echo WINCRED TEST
+                    echo ================================
 
-                        echo Jenkins User:
-                        whoami
-                        echo.
+                    whoami
+                    echo.
 
-                        echo Docker Credential Helper:
-                        docker-credential-desktop.exe version
-                        echo.
+                    echo Docker Credential Helper:
+                    docker-credential-wincred.exe version
+                    echo.
 
-                        echo Testing Docker Login:
-                        echo %DOCKER_PASSWORD% | docker login -u "%DOCKER_USER%" --password-stdin
-                    '''
-                }
+                    echo Stored Docker Credentials:
+                    echo {"ServerURL":"https://index.docker.io/v1/"} | docker-credential-wincred.exe get
+                '''
             }
         }
     }
 }
+
