@@ -28,9 +28,9 @@ pipeline {
             }
         }
 
-        stage('Docker Login') {
+        stage('Docker Login Test') {
             steps {
-                echo 'Logging into Docker Hub...'
+                echo 'Testing Jenkins Docker credentials...'
 
                 withCredentials([
                     usernamePassword(
@@ -40,7 +40,14 @@ pipeline {
                     )
                 ]) {
                     bat '''
-                        echo %DOCKER_PASSWORD% | docker login --username "%DOCKER_USER%" --password-stdin
+                        echo Username: %DOCKER_USER%
+
+                        if "%DOCKER_PASSWORD%"=="" (
+                            echo PASSWORD IS EMPTY
+                            exit /B 1
+                        ) else (
+                            echo PASSWORD IS PRESENT
+                        )
                     '''
                 }
             }
@@ -79,7 +86,7 @@ pipeline {
     post {
         success {
             echo 'CI/CD Pipeline completed successfully!'
-            echo 'Docker Image: deepu09567/staticwebsite_pipleline:latest'
+            echo 'Docker Image: deepu09567/staticside:latest'
             echo 'Container: staticwebsite'
             echo 'Website: http://localhost:1748'
         }
