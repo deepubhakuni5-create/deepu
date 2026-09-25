@@ -3,7 +3,7 @@ pipeline {
 
     stages {
 
-        stage('Docker Hub Credential Test') {
+        stage('Docker Login Test') {
             steps {
 
                 withCredentials([
@@ -14,46 +14,28 @@ pipeline {
                     )
                 ]) {
 
-                    powershell '''
-                        Write-Host "================================"
-                        Write-Host "Docker Hub Credential Test"
-                        Write-Host "================================"
+                    bat '''
+                        echo =================================
+                        echo Docker Hub Login Test
+                        echo =================================
 
-                        Write-Host "Username: $env:DOCKER_USER"
-                        Write-Host "Password Present: $([string]::IsNullOrEmpty($env:DOCKER_PASSWORD) -eq $false)"
-                        Write-Host "Password Length: $($env:DOCKER_PASSWORD.Length)"
+                        echo Username: %DOCKER_USER%
 
-                        $pair = "$($env:DOCKER_USER):$($env:DOCKER_PASSWORD)"
-                        $encoded = [Convert]::ToBase64String(
-                            [Text.Encoding]::UTF8.GetBytes($pair)
+                        docker logout
+
+                        echo.
+                        echo Starting Docker login...
+
+                        echo %DOCKER_PASSWORD% | docker login docker.io --username "%DOCKER_USER%" --password-stdin
+
+                        if errorlevel 1 (
+                            echo.
+                            echo Docker Hub LOGIN FAILED
+                            exit /b 1
                         )
 
-                        $headers = @{
-                            Authorization = "Basic $encoded"
-                        }
-
-                        try {
-                            $response = Invoke-WebRequest `
-                                -Uri "https://hub.docker.com/v2/users/login/" `
-                                -Method POST `
-                                -Headers $headers `
-                                -UseBasicParsing
-
-                            Write-Host ""
-                            Write-Host "Docker Hub Authentication HTTP Status:"
-                            Write-Host $response.StatusCode
-
-                            Write-Host ""
-                            Write-Host "Docker Hub authentication request completed."
-                        }
-                        catch {
-                            Write-Host ""
-                            Write-Host "HTTP Status:"
-                            Write-Host $_.Exception.Response.StatusCode.value__
-
-                            Write-Host ""
-                            Write-Host "Docker Hub rejected the credentials."
-                        }
+                        echo.
+                        echo Docker Hub LOGIN SUCCESS
                     '''
                 }
             }
