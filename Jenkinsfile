@@ -3,42 +3,20 @@ pipeline {
 
     stages {
 
-        stage('Check Docker Login') {
+        stage('Check Docker Config') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASSWORD'
-                    )
-                ]) {
-                    bat '''
-                        echo ================================
-                        echo Jenkins User
-                        echo ================================
-                        whoami
-                        echo.
+                bat '''
+                    echo ================================
+                    echo Docker Config Information
+                    echo ================================
 
-                        echo USERPROFILE:
-                        echo %USERPROFILE%
-                        echo.
+                    echo User:
+                    whoami
+                    echo.
 
-                        echo Docker Context:
-                        docker context show
-                        echo.
-
-                        echo Docker Config:
-                        if exist "%USERPROFILE%\\.docker\\config.json" (
-                            echo Docker config exists
-                        ) else (
-                            echo Docker config NOT FOUND
-                        )
-                        echo.
-
-                        echo Docker Login:
-                        echo %DOCKER_PASSWORD% | docker login -u "%DOCKER_USER%" --password-stdin
-                    '''
-                }
+                    echo Docker Config File:
+                    type "%USERPROFILE%\\.docker\\config.json"
+                '''
             }
         }
     }
