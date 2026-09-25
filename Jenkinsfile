@@ -28,9 +28,9 @@ pipeline {
             }
         }
 
-        stage('Docker Login Test') {
+        stage('Docker Login') {
             steps {
-                echo 'Testing Jenkins Docker credentials...'
+                echo 'Logging into Docker Hub...'
 
                 withCredentials([
                     usernamePassword(
@@ -40,14 +40,7 @@ pipeline {
                     )
                 ]) {
                     bat '''
-                        echo Username: %DOCKER_USER%
-
-                        if "%DOCKER_PASSWORD%"=="" (
-                            echo PASSWORD IS EMPTY
-                            exit /B 1
-                        ) else (
-                            echo PASSWORD IS PRESENT
-                        )
+                        echo %DOCKER_PASSWORD% | docker login --username "%DOCKER_USER%" --password-stdin
                     '''
                 }
             }
@@ -68,9 +61,8 @@ pipeline {
                 echo 'Deploying container on Windows machine...'
 
                 bat '''
-                    docker stop staticwebsite 2>NUL || exit /B 0
-
-                    docker rm staticwebsite 2>NUL || exit /B 0
+                    docker stop staticwebsite >NUL 2>&1
+                    docker rm staticwebsite >NUL 2>&1
 
                     docker pull %IMAGE_NAME%:%IMAGE_TAG%
 
@@ -96,3 +88,4 @@ pipeline {
         }
     }
 }
+
