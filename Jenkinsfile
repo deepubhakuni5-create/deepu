@@ -3,37 +3,43 @@ pipeline {
 
     stages {
 
-        stage('Check Jenkins User') {
+        stage('Check Docker Login') {
             steps {
-                bat '''
-                    echo ================================
-                    echo Jenkins Windows User
-                    echo ================================
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    bat '''
+                        echo ================================
+                        echo Jenkins User
+                        echo ================================
+                        whoami
+                        echo.
 
-                    whoami
+                        echo USERPROFILE:
+                        echo %USERPROFILE%
+                        echo.
 
-                    echo.
-                    echo USERNAME:
-                    echo %USERNAME%
+                        echo Docker Context:
+                        docker context show
+                        echo.
 
-                    echo.
-                    echo USERPROFILE:
-                    echo %USERPROFILE%
+                        echo Docker Config:
+                        if exist "%USERPROFILE%\\.docker\\config.json" (
+                            echo Docker config exists
+                        ) else (
+                            echo Docker config NOT FOUND
+                        )
+                        echo.
 
-                    echo.
-                    echo DOCKER CONFIG:
-                    echo %DOCKER_CONFIG%
-
-                    echo.
-                    echo Docker Context:
-                    docker context show
-
-                    echo.
-                    echo Docker Version:
-                    docker version
-                '''
+                        echo Docker Login:
+                        echo %DOCKER_PASSWORD% | docker login -u "%DOCKER_USER%" --password-stdin
+                    '''
+                }
             }
         }
     }
 }
-
