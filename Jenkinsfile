@@ -13,6 +13,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Checking out source code...'
+
                 git branch: 'main',
                     url: 'https://github.com/deepubhakuni5-create/deepu.git'
             }
@@ -23,7 +24,7 @@ pipeline {
                 echo 'Building Docker image...'
 
                 bat '''
-                    docker build -t %IMAGE_NAME%:latest .
+                    "%DOCKER%" build -t %IMAGE_NAME%:latest .
                 '''
             }
         }
@@ -40,7 +41,7 @@ pipeline {
                     )
                 ]) {
                     bat '''
-                        docker login -u "%DOCKER_USER%" -p "%DOCKER_PASSWORD%"
+                        echo %DOCKER_PASSWORD% | "%DOCKER%" login --username "%DOCKER_USER%" --password-stdin
                     '''
                 }
             }
@@ -51,7 +52,7 @@ pipeline {
                 echo 'Pushing image to Docker Hub...'
 
                 bat '''
-                    docker push %IMAGE_NAME%:latest
+                    "%DOCKER%" push %IMAGE_NAME%:latest
                 '''
             }
         }
@@ -61,12 +62,13 @@ pipeline {
                 echo 'Deploying container on Windows machine...'
 
                 bat '''
-                    docker stop staticwebsite 2>NUL || exit 0
-                    docker rm staticwebsite 2>NUL || exit 0
+                    "%DOCKER%" stop staticwebsite 2>NUL || exit /B 0
 
-                    docker pull %IMAGE_NAME%:latest
+                    "%DOCKER%" rm staticwebsite 2>NUL || exit /B 0
 
-                    docker run -d ^
+                    "%DOCKER%" pull %IMAGE_NAME%:latest
+
+                    "%DOCKER%" run -d ^
                         --name staticwebsite ^
                         -p 1748:80 ^
                         %IMAGE_NAME%:latest
@@ -78,6 +80,8 @@ pipeline {
     post {
         success {
             echo 'CI/CD Pipeline completed successfully!'
+            echo 'Docker Image: deepu09567/staticwebsite_pipleline:latest'
+            echo 'Container: staticwebsite'
             echo 'Website: http://localhost:1748'
         }
 
@@ -86,3 +90,4 @@ pipeline {
         }
     }
 }
+
