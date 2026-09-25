@@ -3,10 +3,10 @@ pipeline {
 
     stages {
 
-        stage('Docker Login') {
+        stage('Docker Login - Clean Config') {
             steps {
 
-                echo 'Testing Docker Hub login from Jenkins...'
+                echo 'Testing Docker Hub login with clean Docker configuration...'
 
                 withCredentials([
                     usernamePassword(
@@ -17,10 +17,34 @@ pipeline {
                 ]) {
 
                     bat '''
-                        echo Username: %DOCKER_USER%
-                        echo Password: dckr_pat_XGsQWtLlUurU9-B6J9kn-0q7vj8
+                        echo ================================
+                        echo Jenkins Docker Environment
+                        echo ================================
+
+                        set DOCKER_CONFIG
+
+                        echo.
+                        echo ================================
+                        echo Creating Clean Docker Config
+                        echo ================================
+
+                        if not exist "%WORKSPACE%\\.docker-clean" mkdir "%WORKSPACE%\\.docker-clean"
+
+                        set "DOCKER_CONFIG=%WORKSPACE%\\.docker-clean"
+
+                        echo DOCKER_CONFIG=%DOCKER_CONFIG%
+
+                        echo.
+                        echo ================================
+                        echo Docker Login
+                        echo ================================
 
                         echo %DOCKER_PASSWORD% | docker login --username "%DOCKER_USER%" --password-stdin
+
+                        echo.
+                        echo ================================
+                        echo Login Test Complete
+                        echo ================================
                     '''
                 }
             }
