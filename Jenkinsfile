@@ -3,7 +3,7 @@ pipeline {
 
     stages {
 
-        stage('Docker Login Test') {
+        stage('Validate Docker Hub PAT') {
             steps {
 
                 withCredentials([
@@ -14,28 +14,49 @@ pipeline {
                     )
                 ]) {
 
-                    bat '''
-                        echo =================================
-                        echo Docker Hub Login Test
-                        echo =================================
+                    powershell '''
+                        Write-Host "================================"
+                        Write-Host "Docker Hub PAT Validation"
+                        Write-Host "================================"
 
-                        echo Username: %DOCKER_USER%
+                        Write-Host "Username: $env:DOCKER_USER"
+                        Write-Host "Password Present: $([string]::IsNullOrEmpty($env:DOCKER_PASSWORD) -eq $false)"
+                        Write-Host "Password Length: $($env:DOCKER_PASSWORD.Length)"
 
-                        docker logout
+                        $pair = "$($env:DOCKER_USER):$($env:DOCKER_PASSWORD)"
+                        $bytes = [System.Text.Encoding]::UTF8.GetBytes($pair)
+                        $encoded = [Convert]::ToBase64String($bytes)
 
-                        echo.
-                        echo Starting Docker login...
+                        $headers = @{
+                            Authorization = "Basic $encoded"
+                        }
 
-                        echo %DOCKER_PASSWORD% | docker login docker.io --username "%DOCKER_USER%" --password-stdin
+                        try {
 
-                        if errorlevel 1 (
-                            echo.
-                            echo Docker Hub LOGIN FAILED
-                            exit /b 1
-                        )
+                            $response = Invoke-WebRequest `
+                                -Uri "https://auth.docker.io/token?service=registry.docker.io&scope=repository:library/nginx:pull" `
+                                -Method GET `
+                                -Headers $headers `
+                                -UseBasicParsing
 
-                        echo.
-                        echo Docker Hub LOGIN SUCCESS
+                            Write-Host ""
+                            Write-Host "HTTP Status:"
+                            Write-Host $response.StatusCode
+
+                            Write-Host ""
+                            Write-Host "Docker Hub PAT ACCEPTED"
+
+                        }
+                        catch {
+
+                            Write-Host ""
+                            Write-Host "HTTP Status:"
+                            Write-Host $_.Exception.Response.StatusCode.value__
+
+                            Write-Host ""
+                            Write-Host "Docker Hub PAT REJECTED"
+                            exit 1
+                        }
                     '''
                 }
             }
