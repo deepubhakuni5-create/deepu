@@ -3,66 +3,30 @@ pipeline {
 
     stages {
 
-        stage('Docker Environment Check') {
+        stage('Check Docker Credential Helper') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASSWORD'
-                    )
-                ]) {
-                    bat '''
-                        echo ================================
-                        echo JENKINS ENVIRONMENT
-                        echo ================================
+                bat '''
+                    echo ================================
+                    echo Docker Credential Helper
+                    echo ================================
 
-                        whoami
-                        echo.
+                    where docker
 
-                        echo USERNAME:
-                        echo %USERNAME%
-                        echo.
+                    echo.
+                    echo Checking Docker Desktop credential helper...
 
-                        echo USERPROFILE:
-                        echo %USERPROFILE%
-                        echo.
+                    where docker-credential-desktop
 
-                        echo HOME:
-                        echo %HOME%
-                        echo.
+                    echo.
+                    echo Checking WinCred helper...
 
-                        echo HOMEDRIVE:
-                        echo %HOMEDRIVE%
-                        echo.
+                    where docker-credential-wincred
 
-                        echo HOMEPATH:
-                        echo %HOMEPATH%
-                        echo.
+                    echo.
+                    echo Docker CLI location:
 
-                        echo DOCKER_CONFIG:
-                        echo %DOCKER_CONFIG%
-                        echo.
-
-                        echo DOCKER CONTEXT:
-                        docker context show
-                        echo.
-
-                        echo DOCKER CONFIG FILE:
-                        if exist "%USERPROFILE%\\.docker\\config.json" (
-                            echo EXISTS
-                        ) else (
-                            echo NOT FOUND
-                        )
-                        echo.
-
-                        echo DOCKER CREDENTIAL:
-                        echo Username = %DOCKER_USER%
-                        echo Password = PRESENT
-                        echo PasswordLength:
-                        powershell -NoProfile -Command "$p=$env:DOCKER_PASSWORD; Write-Output $p.Length"
-                    '''
-                }
+                    docker --version
+                '''
             }
         }
     }
