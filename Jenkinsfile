@@ -3,7 +3,7 @@ pipeline {
 
     stages {
 
-        stage('Exact Docker Login Test') {
+        stage('Create Docker Auth') {
             steps {
 
                 withCredentials([
@@ -16,46 +16,59 @@ pipeline {
 
                     powershell '''
                         Write-Host "================================"
-                        Write-Host "Exact Docker Login Test"
+                        Write-Host "Create Docker Authentication"
                         Write-Host "================================"
 
-                        $testDir = "$env:WORKSPACE/docker-login-test"
+                        $dockerConfig = "$env:WORKSPACE/docker-auth-test"
 
-                        if (Test-Path $testDir) {
-                            Remove-Item $testDir -Recurse -Force
+                        if (Test-Path $dockerConfig) {
+                            Remove-Item $dockerConfig -Recurse -Force
                         }
 
-                        New-Item -ItemType Directory -Path $testDir -Force | Out-Null
+                        New-Item -ItemType Directory -Path $dockerConfig -Force | Out-Null
 
-                        $passwordFile = "$testDir/password.txt"
+                        $pair = "$($env:DOCKER_USER):$($env:DOCKER_PASSWORD)"
 
-                        # Write the Jenkins credential exactly as UTF-8
-                        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-                        [System.IO.File]::WriteAllText(
-                            $passwordFile,
-                            $env:DOCKER_PASSWORD,
-                            $utf8NoBom
-                        )
+                        $bytes = [System.Text.Encoding]::UTF8.GetBytes($pair)
 
-                        Write-Host "Username: $env:DOCKER_USER"
-                        Write-Host "Password Present: $([string]::IsNullOrEmpty($env:DOCKER_PASSWORD) -eq $false)"
-                        Write-Host "Password Length: $($env:DOCKER_PASSWORD.Length)"
+                        $auth = [Convert]::ToBase64String($bytes)
+
+                        $config = @{
+                            auths = @{
+                                "https://index.docker.io/v1/" = @{
+                                    auth = $auth
+                                }
+                            }
+                        }
+
+                        $configFile = "$dockerConfig/config.json"
+
+                        $config | ConvertTo-Json -Depth 5 |
+                            Set-Content -Path $configFile -Encoding UTF8
+
+                        $env:DOCKER_CONFIG = $dockerConfig
 
                         Write-Host ""
-                        Write-Host "Starting Docker Login..."
+                        Write-Host "Docker Config:"
+                        Write-Host $configFile
 
-                        cmd.exe /c "type `"$passwordFile`" | docker login docker.io --username `"$env:DOCKER_USER`" --password-stdin"
+                        Write-Host ""
+                        Write-Host "Docker Context:"
+                        docker context show
+
+                        Write-Host ""
+                        Write-Host "Testing Docker Hub access..."
+
+                        docker pull hello-world
 
                         if ($LASTEXITCODE -ne 0) {
                             Write-Host ""
-                            Write-Host "Docker LOGIN FAILED"
+                            Write-Host "Docker authentication/access test FAILED"
                             exit 1
                         }
 
                         Write-Host ""
-                        Write-Host "Docker LOGIN SUCCESS"
-
-                        Remove-Item $passwordFile -Force
+                        Write-Host "Docker authentication configuration loaded successfully."
                     '''
                 }
             }
