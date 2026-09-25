@@ -51,7 +51,7 @@ pipeline {
 
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'dockerhub-crede',
+                        credentialsId: 'dockerhub-creds',
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
@@ -67,7 +67,7 @@ pipeline {
                             exit /b 1
                         )
 
-                        echo Docker username received from Jenkins credential:
+                        echo Docker username received from Jenkins:
                         echo %DOCKER_USER%
 
                         echo Docker password is present.
@@ -82,7 +82,7 @@ pipeline {
 
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'dockerhub-crede',
+                        credentialsId: 'dockerhub-creds',
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
@@ -127,8 +127,6 @@ pipeline {
                         --name deepu ^
                         -p 8070:80 ^
                         %IMAGE_NAME%:latest
-
-                    echo Container started successfully.
                 '''
             }
         }
@@ -142,7 +140,7 @@ pipeline {
 
                     echo.
                     echo ======================================
-                    echo Website URL:
+                    echo Website:
                     echo http://localhost:8070
                     echo ======================================
                 '''
@@ -151,7 +149,6 @@ pipeline {
     }
 
     post {
-
         success {
             echo '''
 ========================================
@@ -171,7 +168,7 @@ http://localhost:8070
 ========================================
 CI/CD PIPELINE FAILED
 ========================================
-Check the failed stage in Console Output.
+Check the failed stage.
 ========================================
 '''
         }
