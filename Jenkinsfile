@@ -3,10 +3,10 @@ pipeline {
 
     stages {
 
-        stage('Docker Login - Clean Config') {
+        stage('Docker Login') {
             steps {
 
-                echo 'Testing Docker Hub login with clean Docker configuration...'
+                echo 'Testing Docker Hub login from Jenkins...'
 
                 withCredentials([
                     usernamePassword(
@@ -16,35 +16,24 @@ pipeline {
                     )
                 ]) {
 
-                    bat '''
-                        echo ================================
-                        echo Jenkins Docker Environment
-                        echo ================================
+                    powershell '''
+                        Write-Host "================================"
+                        Write-Host "Docker Login"
+                        Write-Host "================================"
 
-                        set DOCKER_CONFIG
+                        Write-Host "Username: $env:DOCKER_USER"
+                        Write-Host "Password: PRESENT"
 
-                        echo.
-                        echo ================================
-                        echo Creating Clean Docker Config
-                        echo ================================
+                        $env:DOCKER_PASSWORD | docker login `
+                            --username $env:DOCKER_USER `
+                            --password-stdin
 
-                        if not exist "%WORKSPACE%\\.docker-clean" mkdir "%WORKSPACE%\\.docker-clean"
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Host "Docker login failed."
+                            exit $LASTEXITCODE
+                        }
 
-                        set "DOCKER_CONFIG=%WORKSPACE%\\.docker-clean"
-
-                        echo DOCKER_CONFIG=%DOCKER_CONFIG%
-
-                        echo.
-                        echo ================================
-                        echo Docker Login
-                        echo ================================
-
-                        echo %DOCKER_PASSWORD% | docker login --username "%DOCKER_USER%" --password-stdin
-
-                        echo.
-                        echo ================================
-                        echo Login Test Complete
-                        echo ================================
+                        Write-Host "Docker login successful!"
                     '''
                 }
             }
