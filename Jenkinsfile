@@ -1,36 +1,12 @@
 pipeline {
     agent any
 
-    environment {
-        DOCKERHUB_USERNAME = 'deepu09567'
-        IMAGE_NAME = 'deepu09567/staticside'
-        IMAGE_TAG = 'latest'
-    }
-
     stages {
 
-        stage('Checkout') {
+        stage('Docker Authentication Diagnostic') {
             steps {
-                echo 'Checking out source code...'
 
-                git branch: 'main',
-                    url: 'https://github.com/deepubhakuni5-create/deepu.git'
-            }
-        }
-
-        stage('Docker Build') {
-            steps {
-                echo 'Building Docker image...'
-
-                bat '''
-                    docker build -t %IMAGE_NAME%:%IMAGE_TAG% .
-                '''
-            }
-        }
-
-        stage('Docker Login') {
-            steps {
-                echo 'Logging into Docker Hub...'
+                echo 'Checking Docker and Jenkins credentials...'
 
                 withCredentials([
                     usernamePassword(
@@ -39,53 +15,50 @@ pipeline {
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
                 ]) {
+
                     bat '''
-                        docker logout
+                        echo ================================
+                        echo Docker Context
+                        echo ================================
+                        docker context show
+
+                        echo.
+                        echo ================================
+                        echo Docker Version
+                        echo ================================
+                        docker version
+
+                        echo.
+                        echo ================================
+                        echo Jenkins Credential
+                        echo ================================
+                        echo Username: %DOCKER_USER%
+
+                        if "%DOCKER_PASSWORD%"=="" (
+                            echo PASSWORD IS EMPTY
+                        ) else (
+                            echo PASSWORD IS PRESENT
+                        )
+
+                        echo.
+                        echo ================================
+                        echo Docker Login
+                        echo ================================
+
                         echo %DOCKER_PASSWORD% | docker login --username "%DOCKER_USER%" --password-stdin
                     '''
                 }
-            }
-        }
-
-        stage('Docker Push') {
-            steps {
-                echo 'Pushing image to Docker Hub...'
-
-                bat '''
-                    docker push %IMAGE_NAME%:%IMAGE_TAG%
-                '''
-            }
-        }
-
-        stage('Deploy Container') {
-            steps {
-                echo 'Deploying container on Windows machine...'
-
-                bat '''
-                    docker stop staticwebsite >NUL 2>&1
-                    docker rm staticwebsite >NUL 2>&1
-
-                    docker pull %IMAGE_NAME%:%IMAGE_TAG%
-
-                    docker run -d ^
-                        --name staticwebsite ^
-                        -p 1748:80 ^
-                        %IMAGE_NAME%:%IMAGE_TAG%
-                '''
             }
         }
     }
 
     post {
         success {
-            echo 'CI/CD Pipeline completed successfully!'
-            echo 'Docker Image: deepu09567/staticside:latest'
-            echo 'Container: staticwebsite'
-            echo 'Website: http://localhost:1748'
+            echo 'Docker login successful!'
         }
 
         failure {
-            echo 'CI/CD Pipeline failed.'
+            echo 'Docker login failed. Check the console output.'
         }
     }
 }
