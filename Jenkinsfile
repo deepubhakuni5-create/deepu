@@ -19,6 +19,18 @@ pipeline {
             }
         }
 
+        stage('Docker Info') {
+            steps {
+                echo 'Checking Docker...'
+
+                bat '''
+                    whoami
+                    "%DOCKER%" version
+                    "%DOCKER%" info
+                '''
+            }
+        }
+
         stage('Docker Build') {
             steps {
                 echo 'Building Docker image...'
@@ -41,7 +53,9 @@ pipeline {
                     )
                 ]) {
                     bat '''
-                        echo %DOCKER_PASSWORD% | "%DOCKER%" login -u "%DOCKER_USER%" --password-stdin
+                        "%DOCKER%" logout
+
+                        echo %DOCKER_PASSWORD% | "%DOCKER%" login docker.io -u "%DOCKER_USER%" --password-stdin
                     '''
                 }
             }
@@ -78,12 +92,16 @@ pipeline {
 
     post {
         success {
+            echo '======================================'
             echo 'CI/CD Pipeline completed successfully!'
+            echo '======================================'
             echo 'Website: http://localhost:8070'
         }
 
         failure {
+            echo '======================================'
             echo 'CI/CD Pipeline failed.'
+            echo '======================================'
         }
     }
 }
