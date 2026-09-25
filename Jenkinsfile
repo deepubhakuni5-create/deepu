@@ -3,9 +3,7 @@ pipeline {
 
     environment {
         DOCKERHUB_USERNAME = 'deepu09567'
-        IMAGE_NAME = 'deepu09567/deepu'
-
-        DOCKER = 'C:\\Users\\Ankit\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
+        IMAGE_NAME = 'deepu09567/staticwebsite_pipleline'
     }
 
     stages {
@@ -13,25 +11,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Checking out source code...'
-
                 git branch: 'main',
-                    url: 'https://github.com/deepubhakuni5-create/deepu.git'
-            }
-        }
-
-        stage('Docker Environment Test') {
-            steps {
-                echo 'Checking Jenkins and Docker environment...'
-
-                bat '''
-                    whoami
-                    echo USERPROFILE=%USERPROFILE%
-                    echo DOCKER_CONFIG=%DOCKER_CONFIG%
-
-                    "%DOCKER%" version
-                    "%DOCKER%" context show
-                    "%DOCKER%" info
-                '''
+                    url: 'https://gitlab.com/shobhitsingh41590/staticwebsite_pipleline.git'
             }
         }
 
@@ -40,39 +21,8 @@ pipeline {
                 echo 'Building Docker image...'
 
                 bat '''
-                    "%DOCKER%" build -t %IMAGE_NAME%:latest .
+                    docker build -t %IMAGE_NAME%:latest .
                 '''
-            }
-        }
-
-        stage('Docker Credential Test') {
-            steps {
-                echo 'Testing Jenkins Docker Hub credential...'
-
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASSWORD'
-                    )
-                ]) {
-                    bat '''
-                        if "%DOCKER_USER%"=="" (
-                            echo ERROR: Docker username is empty
-                            exit /b 1
-                        )
-
-                        if "%DOCKER_PASSWORD%"=="" (
-                            echo ERROR: Docker password is empty
-                            exit /b 1
-                        )
-
-                        echo Docker username received from Jenkins:
-                        echo %DOCKER_USER%
-
-                        echo Docker password is present.
-                    '''
-                }
             }
         }
 
@@ -88,7 +38,7 @@ pipeline {
                     )
                 ]) {
                     bat '''
-                        echo %DOCKER_PASSWORD% | "%DOCKER%" login -u "%DOCKER_USER%" --password-stdin
+                        docker login -u "%DOCKER_USER%" -p "%DOCKER_PASSWORD%"
                     '''
                 }
             }
@@ -99,50 +49,25 @@ pipeline {
                 echo 'Pushing image to Docker Hub...'
 
                 bat '''
-                    "%DOCKER%" push %IMAGE_NAME%:latest
+                    docker push %IMAGE_NAME%:latest
                 '''
             }
         }
 
         stage('Deploy Container') {
             steps {
-                echo 'Deploying container...'
+                echo 'Deploying container on Windows machine...'
 
                 bat '''
-                    echo Stopping old container...
+                    docker stop staticwebsite 2>NUL || exit 0
+                    docker rm staticwebsite 2>NUL || exit 0
 
-                    "%DOCKER%" stop deepu 2>NUL || exit /b 0
+                    docker pull %IMAGE_NAME%:latest
 
-                    echo Removing old container...
-
-                    "%DOCKER%" rm deepu 2>NUL || exit /b 0
-
-                    echo Pulling latest image...
-
-                    "%DOCKER%" pull %IMAGE_NAME%:latest
-
-                    echo Starting new container...
-
-                    "%DOCKER%" run -d ^
-                        --name deepu ^
-                        -p 8070:80 ^
+                    docker run -d ^
+                        --name staticwebsite ^
+                        -p 8061:80 ^
                         %IMAGE_NAME%:latest
-                '''
-            }
-        }
-
-        stage('Verify Deployment') {
-            steps {
-                echo 'Checking running container...'
-
-                bat '''
-                    "%DOCKER%" ps
-
-                    echo.
-                    echo ======================================
-                    echo Website:
-                    echo http://localhost:8070
-                    echo ======================================
                 '''
             }
         }
@@ -150,27 +75,12 @@ pipeline {
 
     post {
         success {
-            echo '''
-========================================
-CI/CD PIPELINE SUCCESS
-========================================
-Docker Image:
-deepu09567/deepu:latest
-
-Website:
-http://localhost:8070
-========================================
-'''
+            echo 'CI/CD Pipeline completed successfully!'
+            echo 'Website: http://localhost:8061'
         }
 
         failure {
-            echo '''
-========================================
-CI/CD PIPELINE FAILED
-========================================
-Check the failed stage.
-========================================
-'''
+            echo 'CI/CD Pipeline failed.'
         }
     }
 }
