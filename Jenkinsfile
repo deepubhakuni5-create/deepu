@@ -53,9 +53,7 @@ pipeline {
                     )
                 ]) {
                     bat '''
-                        "%DOCKER%" logout
-
-                        echo %DOCKER_PASSWORD% | "%DOCKER%" login docker.io -u "%DOCKER_USER%" --password-stdin
+                        echo %DOCKER_PASSWORD% | "%DOCKER%" login -u "%DOCKER_USER%" --password-stdin
                     '''
                 }
             }
