@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKERHUB_USERNAME = 'deepu09567'
-        IMAGE_NAME = 'deepu09567/staticwebsite_pipleline'
+        IMAGE_NAME = 'deepu09567/staticside'
         IMAGE_TAG = 'latest'
     }
 
