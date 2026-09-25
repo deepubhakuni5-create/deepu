@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKERHUB_USERNAME = 'deepu09567'
         IMAGE_NAME = 'deepu09567/staticwebsite_pipleline'
-
+        IMAGE_TAG = 'latest'
     }
 
     stages {
@@ -23,7 +23,7 @@ pipeline {
                 echo 'Building Docker image...'
 
                 bat '''
-                    "%DOCKER%" build -t %IMAGE_NAME%:latest .
+                    docker build -t %IMAGE_NAME%:%IMAGE_TAG% .
                 '''
             }
         }
@@ -40,7 +40,7 @@ pipeline {
                     )
                 ]) {
                     bat '''
-                        echo %DOCKER_PASSWORD% | "%DOCKER%" login --username "%DOCKER_USER%" --password-stdin
+                        echo %DOCKER_PASSWORD% | docker login --username "%DOCKER_USER%" --password-stdin
                     '''
                 }
             }
@@ -51,7 +51,7 @@ pipeline {
                 echo 'Pushing image to Docker Hub...'
 
                 bat '''
-                    "%DOCKER%" push %IMAGE_NAME%:latest
+                    docker push %IMAGE_NAME%:%IMAGE_TAG%
                 '''
             }
         }
@@ -61,16 +61,16 @@ pipeline {
                 echo 'Deploying container on Windows machine...'
 
                 bat '''
-                    "%DOCKER%" stop staticwebsite 2>NUL || exit /B 0
+                    docker stop staticwebsite 2>NUL || exit /B 0
 
-                    "%DOCKER%" rm staticwebsite 2>NUL || exit /B 0
+                    docker rm staticwebsite 2>NUL || exit /B 0
 
-                    "%DOCKER%" pull %IMAGE_NAME%:latest
+                    docker pull %IMAGE_NAME%:%IMAGE_TAG%
 
-                    "%DOCKER%" run -d ^
+                    docker run -d ^
                         --name staticwebsite ^
                         -p 1748:80 ^
-                        %IMAGE_NAME%:latest
+                        %IMAGE_NAME%:%IMAGE_TAG%
                 '''
             }
         }
@@ -89,4 +89,3 @@ pipeline {
         }
     }
 }
-
