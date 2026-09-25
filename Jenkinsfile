@@ -12,7 +12,7 @@ pipeline {
             steps {
                 echo 'Checking out source code...'
                 git branch: 'main',
-                    url: 'https://gitlab.com/shobhitsingh41590/staticwebsite_pipleline.git'
+                    url: 'https://github.com/deepubhakuni5-create/deepu.git'
             }
         }
 
