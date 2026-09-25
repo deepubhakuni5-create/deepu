@@ -3,37 +3,24 @@ pipeline {
 
     stages {
 
-        stage('Docker Hub Connectivity') {
+        stage('Docker Login') {
             steps {
 
-                powershell '''
-                    Write-Host "================================"
-                    Write-Host "Docker Hub Connectivity Test"
-                    Write-Host "================================"
+                echo 'Testing Docker Hub login from Jenkins...'
 
-                    Write-Host "Docker:"
-                    docker --version
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
 
-                    Write-Host ""
-                    Write-Host "Docker Context:"
-                    docker context show
+                    powershell '''
+                        Write-Host "================================"
+                        Write-Host "Docker Hub Login"
+                        Write-Host "================================"
 
-                    Write-Host ""
-                    Write-Host "Docker Hub API:"
-                    try {
-                        $response = Invoke-WebRequest `
-                            -Uri "https://registry-1.docker.io/v2/" `
-                            -UseBasicParsing
-
-                        Write-Host "HTTP Status: $($response.StatusCode)"
-                    }
-                    catch {
-                        Write-Host "HTTP Status: $($_.Exception.Response.StatusCode.value__)"
-                        Write-Host "Docker Hub is reachable."
-                    }
-                '''
-            }
-        }
-    }
-}
+                        Write-Host "Username: $env:DOCKER_USER"
+                        Write-Host "Password Present: $([string]::IsNullOrEmpty($env:DOCKER_PASSWORD) -eq $false_
 
