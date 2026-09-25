@@ -24,12 +24,12 @@ pipeline {
                     docker context show
 
                     Write-Host ""
-                    Write-Host "Docker Config:"
+                    Write-Host "DOCKER_CONFIG:"
                     if ($env:DOCKER_CONFIG) {
-                        Write-Host "DOCKER_CONFIG = $env:DOCKER_CONFIG"
+                        Write-Host $env:DOCKER_CONFIG
                     }
                     else {
-                        Write-Host "DOCKER_CONFIG = NOT SET"
+                        Write-Host "NOT SET"
                     }
 
                     Write-Host ""
@@ -41,25 +41,23 @@ pipeline {
                     Write-Host $env:APPDATA
 
                     Write-Host ""
-                    Write-Host "Docker config locations:"
+                    Write-Host "Docker configuration:"
+                    
+                    if (Test-Path "$env:USERPROFILE/.docker/config.json") {
+                        Write-Host "FOUND USERPROFILE Docker config"
+                    }
+                    else {
+                        Write-Host "USERPROFILE Docker config NOT FOUND"
+                    }
 
-                    $paths = @(
-                        "$env:USERPROFILE\.docker\config.json",
-                        "$env:APPDATA\Docker\config.json",
-                        "C:\Windows\System32\config\systemprofile\.docker\config.json"
-                    )
-
-                    foreach ($path in $paths) {
-                        if (Test-Path $path) {
-                            Write-Host "FOUND: $path"
-                        }
-                        else {
-                            Write-Host "NOT FOUND: $path"
-                        }
+                    if (Test-Path "C:/Windows/System32/config/systemprofile/.docker/config.json") {
+                        Write-Host "FOUND LocalSystem Docker config"
+                    }
+                    else {
+                        Write-Host "LocalSystem Docker config NOT FOUND"
                     }
                 '''
             }
         }
     }
 }
-
