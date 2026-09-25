@@ -3,7 +3,7 @@ pipeline {
 
     stages {
 
-        stage('Create Docker Auth') {
+        stage('Docker Private Registry Test') {
             steps {
 
                 withCredentials([
@@ -16,7 +16,7 @@ pipeline {
 
                     powershell '''
                         Write-Host "================================"
-                        Write-Host "Create Docker Authentication"
+                        Write-Host "Docker Private Registry Test"
                         Write-Host "================================"
 
                         $dockerConfig = "$env:WORKSPACE/docker-auth-test"
@@ -28,12 +28,10 @@ pipeline {
                         New-Item -ItemType Directory -Path $dockerConfig -Force | Out-Null
 
                         $pair = "$($env:DOCKER_USER):$($env:DOCKER_PASSWORD)"
-
                         $bytes = [System.Text.Encoding]::UTF8.GetBytes($pair)
-
                         $auth = [Convert]::ToBase64String($bytes)
 
-                        $config = @{
+                        $configObject = @{
                             auths = @{
                                 "https://index.docker.io/v1/" = @{
                                     auth = $auth
@@ -41,34 +39,39 @@ pipeline {
                             }
                         }
 
-                        $configFile = "$dockerConfig/config.json"
+                        $json = $configObject | ConvertTo-Json -Depth 5
 
-                        $config | ConvertTo-Json -Depth 5 |
-                            Set-Content -Path $configFile -Encoding UTF8
+                        # UTF-8 WITHOUT BOM
+                        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+                        [System.IO.File]::WriteAllText(
+                            "$dockerConfig/config.json",
+                            $json,
+                            $utf8NoBom
+                        )
 
                         $env:DOCKER_CONFIG = $dockerConfig
 
                         Write-Host ""
                         Write-Host "Docker Config:"
-                        Write-Host $configFile
+                        Get-Content "$dockerConfig/config.json" |
+                            ForEach-Object {
+                                $_ -replace $auth, "AUTH_MASKED"
+                            }
 
                         Write-Host ""
-                        Write-Host "Docker Context:"
-                        docker context show
+                        Write-Host "Testing private Docker Hub authentication..."
 
-                        Write-Host ""
-                        Write-Host "Testing Docker Hub access..."
-
-                        docker pull hello-world
+                        docker pull $env:DOCKER_USER/staticside:latest
 
                         if ($LASTEXITCODE -ne 0) {
                             Write-Host ""
-                            Write-Host "Docker authentication/access test FAILED"
+                            Write-Host "PRIVATE REGISTRY TEST FAILED"
                             exit 1
                         }
 
                         Write-Host ""
-                        Write-Host "Docker authentication configuration loaded successfully."
+                        Write-Host "PRIVATE REGISTRY TEST SUCCESS"
                     '''
                 }
             }
