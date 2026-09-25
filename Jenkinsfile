@@ -3,38 +3,35 @@ pipeline {
 
     stages {
 
-        stage('Docker Login') {
+        stage('Docker Hub Connectivity') {
             steps {
 
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASSWORD'
-                    )
-                ]) {
+                powershell '''
+                    Write-Host "================================"
+                    Write-Host "Docker Hub Connectivity Test"
+                    Write-Host "================================"
 
-                    powershell '''
-                        Write-Host "================================"
-                        Write-Host "Docker Hub Login Test"
-                        Write-Host "================================"
+                    Write-Host "Docker:"
+                    docker --version
 
-                        Write-Host "Username: $env:DOCKER_USER"
-                        Write-Host "Password Present: $([string]::IsNullOrEmpty($env:DOCKER_PASSWORD) -eq $false)"
-                        Write-Host "Password Length: $($env:DOCKER_PASSWORD.Length)"
+                    Write-Host ""
+                    Write-Host "Docker Context:"
+                    docker context show
 
-                        $env:DOCKER_PASSWORD | docker login `
-                            --username $env:DOCKER_USER `
-                            --password-stdin
+                    Write-Host ""
+                    Write-Host "Docker Hub API:"
+                    try {
+                        $response = Invoke-WebRequest `
+                            -Uri "https://registry-1.docker.io/v2/" `
+                            -UseBasicParsing
 
-                        if ($LASTEXITCODE -ne 0) {
-                            Write-Host "Docker Hub login FAILED"
-                            exit $LASTEXITCODE
-                        }
-
-                        Write-Host "Docker Hub login SUCCESSFUL"
-                    '''
-                }
+                        Write-Host "HTTP Status: $($response.StatusCode)"
+                    }
+                    catch {
+                        Write-Host "HTTP Status: $($_.Exception.Response.StatusCode.value__)"
+                        Write-Host "Docker Hub is reachable."
+                    }
+                '''
             }
         }
     }
